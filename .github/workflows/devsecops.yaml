@@ -1,0 +1,58 @@
+name: DevSecOps CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Run tfsec on Terraform code
+      - name: tfsec - Security Scan
+        uses: aquasecurity/tfsec-action@master
+        with:
+          working_directory: ./terraform
+
+      # Build Docker image
+      - name: Build Docker image
+        run: docker build -t myrepo/myimage:latest .
+
+      # Run Trivy on Docker image
+      - name: Trivy - Image Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: myrepo/myimage:latest
+
+      # Set up kubectl (for Kubernetes commands)
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      # Apply Sealed Secrets
+      - name: Apply SealedSecrets
+        run: kubectl apply -f k8s/sealed-secrets/
+        env:
+          KUBECONFIG: ${{ secrets.KUBECONFIG }}
+
+      # Deploy app to Kubernetes
+      - name: Deploy to Kubernetes
+        run: kubectl apply -f k8s/deployment/
+        env:
+          KUBECONFIG: ${{ secrets.KUBECONFIG }}
+
+      # OPTIONAL: Provision/update infrastructure with Terraform
+      - name: Terraform Init & Apply
+        working-directory: ./terraform
+        run: |
+          terraform init
+          terraform apply -auto-approve
+        env:
+          TF_VAR_some_secret: ${{ secrets.SOME_SECRET }}
