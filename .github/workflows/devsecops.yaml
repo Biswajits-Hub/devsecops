@@ -37,10 +37,15 @@ jobs:
           version: 'latest'
 
       # Apply Sealed Secrets
-      - name: Apply SealedSecrets
-        run: kubectl apply -f k8s/sealed-secrets/
+      - name: Set kubeconfig from secret
+        run: echo "${KUBECONFIG_SECRET}" | base64 --decode > kubeconfig
+        shell: bash
         env:
-          KUBECONFIG: ${{ secrets.KUBECONFIG }}
+          KUBECONFIG_SECRET: ${{ secrets.KUBECONFIG }}
+
+      - name: Apply SealedSecrets
+        run: KUBECONFIG=./kubeconfig kubectl apply -f k8s/sealed-secrets/
+
 
       # Deploy app to Kubernetes
       - name: Deploy to Kubernetes
