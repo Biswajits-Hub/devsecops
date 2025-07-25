@@ -30,28 +30,31 @@ jobs:
         with:
           image-ref: myrepo/myimage:latest
 
-      # Set up kubectl (for Kubernetes commands)
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1 # or your region
+
+      # Set up kubectl
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
         with:
           version: 'latest'
 
-      # Apply Sealed Secrets
+      # Write kubeconfig file from secret 
       - name: Set kubeconfig from secret
-        run: echo "${KUBECONFIG_SECRET}" | base64 --decode > kubeconfig
+        run: echo "${KUBECONFIG_SECRET}" > kubeconfig
         shell: bash
         env:
           KUBECONFIG_SECRET: ${{ secrets.KUBECONFIG }}
 
       - name: Apply SealedSecrets
-        run: KUBECONFIG=./kubeconfig kubectl apply -f k8s/sealed-secrets/
+        run: kubectl --kubeconfig=./kubeconfig apply -f k8s/sealed-secrets/
 
-
-      # Deploy app to Kubernetes
       - name: Deploy to Kubernetes
-        run: kubectl apply -f k8s/deployment/
-        env:
-          KUBECONFIG: ${{ secrets.KUBECONFIG }}
+        run: kubectl --kubeconfig=./kubeconfig apply -f k8s/deployment/
 
       # OPTIONAL: Provision/update infrastructure with Terraform
       - name: Terraform Init & Apply
