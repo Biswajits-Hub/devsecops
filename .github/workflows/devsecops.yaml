@@ -62,7 +62,7 @@ jobs:
       # Apply Sealed Secrets
       - name: Apply SealedSecrets
         run: |
-          kubectl apply -f sealed-secrets/my-sealed-secret.yaml
+          kubectl apply -f k8s-manifests/sealed-secrets/my-sealed-secret.yaml
 
       # Deploy Application to Kubernetes
       - name: Deploy to Kubernetes
